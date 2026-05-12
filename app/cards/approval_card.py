@@ -1,4 +1,9 @@
-def get_approval_card(ip: str, reason: str = "Suspicious activity detected") -> dict:
+import uuid
+
+def get_approval_card(ip: str, reason: str = "Suspicious activity detected", request_id: str = None) -> dict:
+    if not request_id:
+        request_id = str(uuid.uuid4())
+        
     return {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "type": "AdaptiveCard",
@@ -34,7 +39,8 @@ def get_approval_card(ip: str, reason: str = "Suspicious activity detected") -> 
                 "style": "positive",          # green button in Teams
                 "data": {
                     "action":     "approve_block",
-                    "ip_address": ip           # carry IP through to handler
+                    "ip_address": ip,          # carry IP through to handler
+                    "request_id": request_id
                 }
             },
             {
@@ -43,7 +49,8 @@ def get_approval_card(ip: str, reason: str = "Suspicious activity detected") -> 
                 "style": "destructive",        # red button in Teams
                 "data": {
                     "action":     "reject_block",
-                    "ip_address": ip
+                    "ip_address": ip,
+                    "request_id": request_id
                 }
             }
         ]
