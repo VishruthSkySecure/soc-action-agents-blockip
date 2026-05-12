@@ -34,23 +34,59 @@ def get_approval_card(ip: str, reason: str = "Suspicious activity detected", req
         ],
         "actions": [
             {
-                "type": "Action.Submit",
+                "type": "Action.ShowCard",
                 "title": "✅ Accept — Block IP",
                 "style": "positive",          # green button in Teams
-                "data": {
-                    "action":     "approve_block",
-                    "ip_address": ip,          # carry IP through to handler
-                    "request_id": request_id
+                "card": {
+                    "type": "AdaptiveCard",
+                    "body": [
+                        {
+                            "type": "Input.Text",
+                            "id": "admin_reason",
+                            "placeholder": "Mention the reason for accepting to block this IP",
+                            "isMultiline": True,
+                            "maxLength": 500
+                        }
+                    ],
+                    "actions": [
+                        {
+                            "type": "Action.Submit",
+                            "title": "Confirm Accept",
+                            "data": {
+                                "action":     "approve_block",
+                                "ip_address": ip,          
+                                "request_id": request_id
+                            }
+                        }
+                    ]
                 }
             },
             {
-                "type": "Action.Submit",
+                "type": "Action.ShowCard",
                 "title": "❌ Reject — Do Nothing",
                 "style": "destructive",        # red button in Teams
-                "data": {
-                    "action":     "reject_block",
-                    "ip_address": ip,
-                    "request_id": request_id
+                "card": {
+                    "type": "AdaptiveCard",
+                    "body": [
+                        {
+                            "type": "Input.Text",
+                            "id": "admin_reason",
+                            "placeholder": "Mention the reason for rejecting this block",
+                            "isMultiline": True,
+                            "maxLength": 500
+                        }
+                    ],
+                    "actions": [
+                        {
+                            "type": "Action.Submit",
+                            "title": "Confirm Reject",
+                            "data": {
+                                "action":     "reject_block",
+                                "ip_address": ip,
+                                "request_id": request_id
+                            }
+                        }
+                    ]
                 }
             }
         ]

@@ -1,4 +1,4 @@
-def get_result_card(ip: str, success: bool, detail: str = "", rejected: bool = False) -> dict:
+def get_result_card(ip: str, success: bool, detail: str = "", rejected: bool = False, admin_reason: str = "") -> dict:
     if rejected:
         color, icon, title = "Warning", "🚫", "Block Rejected by Admin"
         status = "No action taken"
@@ -8,6 +8,16 @@ def get_result_card(ip: str, success: bool, detail: str = "", rejected: bool = F
     else:
         color, icon, title = "Attention","❌", "Block Failed"
         status = "See detail for reason"
+
+    facts = [
+        {"title": "IP Address", "value": ip},
+        {"title": "Status",     "value": status},
+    ]
+    
+    if admin_reason:
+        facts.append({"title": "Admin Reason", "value": admin_reason})
+        
+    facts.append({"title": "Detail", "value": detail or "—"})
 
     return {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -25,11 +35,7 @@ def get_result_card(ip: str, success: bool, detail: str = "", rejected: bool = F
             },
             {
                 "type": "FactSet",
-                "facts": [
-                    {"title": "IP Address", "value": ip},
-                    {"title": "Status",     "value": status},
-                    {"title": "Detail",     "value": detail or "—"},
-                ]
+                "facts": facts
             }
         ]
     }
