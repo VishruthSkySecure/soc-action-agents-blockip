@@ -1,0 +1,29 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "f6564a25-e377-4fa0-83e2-d2cbb007a896",
+  "packageName": "com.yourorg.defenderbot",
+  "developer": {
+    "name": "SST Lab",
+    "websiteUrl": "https://your-backend-url.com",
+    "privacyUrl": "https://your-backend-url.com/privacy",
+    "termsOfUseUrl": "https://your-backend-url.com/terms"
+  },
+  "name": { "short": "Defender Bot", "full": "Microsoft Defender IP Block Bot" },
+  "description": {
+    "short": "Block IPs via Defender",
+    "full": "Block malicious IP addresses in Microsoft Defender directly from Teams."
+  },
+  "icons": { "outline": "outline.png", "color": "color.png" },
+  "accentColor": "#0078D4",
+  "bots": [
+    {
+      "botId": "f6564a25-e377-4fa0-83e2-d2cbb007a896",
+      "scopes": ["personal", "team", "groupchat"],
+      "isNotificationOnly": false
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": ["your-backend-url.com"]
+}
