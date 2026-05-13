@@ -9,8 +9,7 @@ from app.core.logger import logger
 
 class TeamsBot:
     def __init__(self):
-        # Keep track of processed request IDs to prevent duplicate actions
-        self.processed_requests = set()
+        pass
 
     async def on_turn(self, turn_context: TurnContext):
         activity = turn_context.activity
@@ -78,21 +77,6 @@ class TeamsBot:
         admin_reason    = value.get("admin_reason", "").strip()
         
         logger.info(f"Invoke action: {action} for IP: {ip}, Request ID: {request_id}, Reason: {admin_reason}")
-
-        # Check if we already processed this specific card
-        if request_id:
-            if request_id in self.processed_requests:
-                logger.info(f"Duplicate request detected for {request_id}. Ignoring.")
-                await turn_context.send_activity("⚠️ This request has already been processed.")
-                
-                # Still need to return the invokeResponse if it was an invoke
-                if turn_context.activity.type == ActivityTypes.invoke:
-                    invoke_response = Activity(type="invokeResponse", value={"status": 200})
-                    await turn_context.send_activity(invoke_response)
-                return
-            
-            # Mark as processed
-            self.processed_requests.add(request_id)
 
         if action == "approve_block":
             await self._do_block(turn_context, ip, admin_reason, original_reason, request_id)
