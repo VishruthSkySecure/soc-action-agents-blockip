@@ -53,9 +53,10 @@ def get_approval_card(ip: str, reason: str = "Suspicious activity detected", req
                             "type": "Action.Submit",
                             "title": "Confirm Accept",
                             "data": {
-                                "action":     "approve_block",
-                                "ip_address": ip,          
-                                "request_id": request_id
+                                "action":          "approve_block",
+                                "ip_address":      ip,          
+                                "request_id":      request_id,
+                                "original_reason": reason
                             }
                         }
                     ]
@@ -81,9 +82,10 @@ def get_approval_card(ip: str, reason: str = "Suspicious activity detected", req
                             "type": "Action.Submit",
                             "title": "Confirm Reject",
                             "data": {
-                                "action":     "reject_block",
-                                "ip_address": ip,
-                                "request_id": request_id
+                                "action":          "reject_block",
+                                "ip_address":      ip,
+                                "request_id":      request_id,
+                                "original_reason": reason
                             }
                         }
                     ]

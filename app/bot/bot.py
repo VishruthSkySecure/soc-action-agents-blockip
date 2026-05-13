@@ -71,10 +71,11 @@ class TeamsBot:
         if "action" not in value and "value" in value and isinstance(value["value"], dict):
             value = value["value"]
             
-        action       = value.get("action")
-        ip           = value.get("ip_address", "").strip()
-        request_id   = value.get("request_id")
-        admin_reason = value.get("admin_reason", "").strip()
+        action          = value.get("action")
+        ip              = value.get("ip_address", "").strip()
+        request_id      = value.get("request_id")
+        original_reason = value.get("original_reason", "Suspicious activity detected")
+        admin_reason    = value.get("admin_reason", "").strip()
         
         logger.info(f"Invoke action: {action} for IP: {ip}, Request ID: {request_id}, Reason: {admin_reason}")
 
@@ -94,10 +95,10 @@ class TeamsBot:
             self.processed_requests.add(request_id)
 
         if action == "approve_block":
-            await self._do_block(turn_context, ip, admin_reason)
+            await self._do_block(turn_context, ip, admin_reason, original_reason, request_id)
 
         elif action == "reject_block":
-            await self._do_reject(turn_context, ip, admin_reason)
+            await self._do_reject(turn_context, ip, admin_reason, original_reason, request_id)
 
         # ✅ REQUIRED: Tell Teams the invoke was handled successfully
         if turn_context.activity.type == ActivityTypes.invoke:
@@ -120,38 +121,70 @@ class TeamsBot:
         await turn_context.send_activity(MessageFactory.attachment(attachment))
 
     # ── Admin clicked Accept ───────────────────────────────────────
-    async def _do_block(self, turn_context: TurnContext, ip: str, admin_reason: str = ""):
+    async def _do_block(self, turn_context: TurnContext, ip: str, admin_reason: str = "", original_reason: str = "", request_id: str = ""):
         logger.info(f"Executing block for IP: {ip}. Admin Reason: {admin_reason}")
-        await turn_context.send_activity(f"⏳ Blocking `{ip}` in Microsoft Defender...")
+        
+        # 1. Update the ORIGINAL card to remove buttons
+        try:
+            # Reconstruct the original card but remove the actions
+            orig_card = get_approval_card(ip, original_reason, request_id)
+            orig_card["actions"] = [] # Remove buttons
+            
+            # Update status in the original card facts
+            for item in orig_card["body"]:
+                if item["type"] == "FactSet":
+                    for fact in item["facts"]:
+                        if fact["title"] == "Status":
+                            fact["value"] = "✅ Processed (Blocked)"
+            
+            update_activity = MessageFactory.attachment(CardFactory.adaptive_card(orig_card))
+            update_activity.id = turn_context.activity.reply_to_id
+            await turn_context.update_activity(update_activity)
+        except Exception as e:
+            logger.error(f"Failed to update original card: {e}")
 
+        # 2. Proceed with the actual blocking
+        await turn_context.send_activity(f"⏳ Blocking `{ip}` in Microsoft Defender...")
         result = block_ip(ip)
 
         detail = ""
         if result["success"]:
             detail = str(result.get("data", {}).get("id", "Indicator created"))
             logger.info(f"Successfully blocked IP: {ip}. Detail: {detail}")
-            # Print to terminal directly as requested
-            print(f"\n[SUCCESS] Blocked IP: {ip}")
-            print(f"[SUCCESS] Admin Reason: {admin_reason}")
-            print(f"[SUCCESS] Defender Response ID: {detail}\n")
+            print(f"\n[SUCCESS] Blocked IP: {ip}\n[SUCCESS] Admin Reason: {admin_reason}\n[SUCCESS] Response ID: {detail}\n")
         else:
             detail = str(result.get("error", "Unknown error"))
             logger.error(f"Failed to block IP: {ip}. Error: {detail}")
-            # Print to terminal directly as requested
-            print(f"\n[FAILED] Could not block IP: {ip}")
-            print(f"[FAILED] Error Details: {detail}\n")
+            print(f"\n[FAILED] Could not block IP: {ip}\n[FAILED] Error Details: {detail}\n")
 
+        # 3. Send the RESULT card as a NEW message
         card       = get_result_card(ip, result["success"], detail, admin_reason=admin_reason)
         attachment = CardFactory.adaptive_card(card)
         await turn_context.send_activity(MessageFactory.attachment(attachment))
 
     # ── Admin clicked Reject ───────────────────────────────────────
-    async def _do_reject(self, turn_context: TurnContext, ip: str, admin_reason: str = ""):
+    async def _do_reject(self, turn_context: TurnContext, ip: str, admin_reason: str = "", original_reason: str = "", request_id: str = ""):
         logger.info(f"Rejecting block for IP: {ip}. Admin Reason: {admin_reason}")
         
-        detail = "Admin chose not to block this IP"
+        # 1. Update the ORIGINAL card to remove buttons
+        try:
+            orig_card = get_approval_card(ip, original_reason, request_id)
+            orig_card["actions"] = [] # Remove buttons
             
-        card       = get_result_card(ip, success=False, rejected=True,
-                                     detail=detail, admin_reason=admin_reason)
+            for item in orig_card["body"]:
+                if item["type"] == "FactSet":
+                    for fact in item["facts"]:
+                        if fact["title"] == "Status":
+                            fact["value"] = "🚫 Processed (Rejected)"
+            
+            update_activity = MessageFactory.attachment(CardFactory.adaptive_card(orig_card))
+            update_activity.id = turn_context.activity.reply_to_id
+            await turn_context.update_activity(update_activity)
+        except Exception as e:
+            logger.error(f"Failed to update original card: {e}")
+
+        # 2. Send the RESULT card as a NEW message
+        detail = "Admin chose not to block this IP"
+        card   = get_result_card(ip, success=False, rejected=True, detail=detail, admin_reason=admin_reason)
         attachment = CardFactory.adaptive_card(card)
         await turn_context.send_activity(MessageFactory.attachment(attachment))
